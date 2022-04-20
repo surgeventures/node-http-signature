@@ -154,6 +154,29 @@ test('valid raw hmac', function(t) {
   });
 });
 
+test('verifies hs2019: hmac-sha512 variant properly', function(t) {
+  server.tester = function(req, res) {
+    var parsed = httpSignature.parseRequest(req);
+    t.ok(httpSignature.verifyHMAC(parsed, rawhmacKey));
+
+    res.writeHead(200);
+    res.write(JSON.stringify(parsed, null, 2));
+    res.end();
+  };
+
+  const shaVariant = 'sha512';
+  const algorithm = 'hs2019';
+  options.headers.Date = jsprim.rfc1123(new Date());
+  var hmac = crypto.createHmac(shaVariant, rawhmacKey);
+  hmac.update('date: ' + options.headers.Date);
+  options.headers.Authorization = `Signature keyId="foo",algorithm="${algorithm}",signature="${hmac.digest('base64')}"`;
+
+  http.get(options, function(res) {
+    t.equal(res.statusCode, 200);
+    t.end();
+  });
+})
+
 test('invalid rsa', function(t) {
   server.tester = function(req, res) {
     var parsed = httpSignature.parseRequest(req);
